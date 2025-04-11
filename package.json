@@ -15,5 +15,9 @@
     "@vercel/node": "^3.0.19",
     "typescript": "^5.3.3",
     "vercel": "^33.5.3"
+  },
+  "dependencies": {
+    "mongodb": "^6.15.0",
+    "mongoose": "^8.13.2"
   }
 }

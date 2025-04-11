@@ -2,10 +2,43 @@ import { VercelRequest, VercelResponse } from '@vercel/node';
 import dbConnect from '../utils/dbConnect';
 import { Message, MessageType } from '../models/Message';
 
+// CORS 配置
+const DEFAULT_ALLOWED_ORIGINS = [
+  'http://localhost:3000'  // 默认允许本地开发环境
+];
+
+// 从环境变量获取允许的源站
+const ALLOWED_ORIGINS = process.env.ALLOWED_ORIGINS 
+  ? [...DEFAULT_ALLOWED_ORIGINS, ...process.env.ALLOWED_ORIGINS.split(',').map(origin => origin.trim())]
+  : DEFAULT_ALLOWED_ORIGINS;
+
+// CORS 中间件
+function setCorsHeaders(req: VercelRequest, res: VercelResponse) {
+  const origin = req.headers.origin;
+  
+  // 检查请求源是否在允许列表中
+  if (origin && ALLOWED_ORIGINS.includes(origin)) {
+    res.setHeader('Access-Control-Allow-Origin', origin);
+  }
+  
+  res.setHeader('Access-Control-Allow-Methods', 'GET, POST, OPTIONS');
+  res.setHeader('Access-Control-Allow-Headers', 'Content-Type, Authorization');
+  res.setHeader('Access-Control-Allow-Credentials', 'true');
+}
+
 export default async function handler(
   req: VercelRequest,
   res: VercelResponse
 ) {
+  // 处理 OPTIONS 请求
+  if (req.method === 'OPTIONS') {
+    setCorsHeaders(req, res);
+    return res.status(200).end();
+  }
+
+  // 为所有请求设置 CORS 头
+  setCorsHeaders(req, res);
+  
   await dbConnect();
 
   switch (req.method) {

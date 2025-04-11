@@ -4,26 +4,46 @@ import { Message, MessageType } from '../models/Message';
 
 // CORS 配置
 const DEFAULT_ALLOWED_ORIGINS = [
-  'http://localhost:3000'  // 默认允许本地开发环境
+  'http://localhost:3000',
+  'https://happy-leave-wall.vercel.app',
+  'https://happy-leave-wall-api.vercel.app'
 ];
 
 // 从环境变量获取允许的源站
 const ALLOWED_ORIGINS = process.env.ALLOWED_ORIGINS 
-  ? [...DEFAULT_ALLOWED_ORIGINS, ...process.env.ALLOWED_ORIGINS.split(',').map(origin => origin.trim())]
+  ? [...new Set([...DEFAULT_ALLOWED_ORIGINS, ...process.env.ALLOWED_ORIGINS.split(',').map(origin => origin.trim())])]
   : DEFAULT_ALLOWED_ORIGINS;
+
+// 开发环境打印配置信息
+if (process.env.NODE_ENV !== 'production') {
+  console.log('环境变量 ALLOWED_ORIGINS:', process.env.ALLOWED_ORIGINS);
+  console.log('允许的源站列表:', ALLOWED_ORIGINS);
+}
 
 // CORS 中间件
 function setCorsHeaders(req: VercelRequest, res: VercelResponse) {
   const origin = req.headers.origin;
   
+  // 在开发环境打印请求源信息
+  if (process.env.NODE_ENV !== 'production') {
+    console.log('请求源:', origin);
+  }
+
   // 检查请求源是否在允许列表中
-  if (origin && ALLOWED_ORIGINS.includes(origin)) {
-    res.setHeader('Access-Control-Allow-Origin', origin);
+  if (origin) {
+    if (ALLOWED_ORIGINS.includes(origin)) {
+      res.setHeader('Access-Control-Allow-Origin', origin);
+    } else if (process.env.NODE_ENV !== 'production') {
+      // 在非生产环境允许所有源
+      res.setHeader('Access-Control-Allow-Origin', origin);
+    }
   }
   
-  res.setHeader('Access-Control-Allow-Methods', 'GET, POST, OPTIONS');
-  res.setHeader('Access-Control-Allow-Headers', 'Content-Type, Authorization');
+  // 允许的请求方法和头部
+  res.setHeader('Access-Control-Allow-Methods', 'GET, POST, OPTIONS, PUT, DELETE');
+  res.setHeader('Access-Control-Allow-Headers', 'X-Requested-With, Content-Type, Authorization');
   res.setHeader('Access-Control-Allow-Credentials', 'true');
+  res.setHeader('Access-Control-Max-Age', '86400'); // 24 小时
 }
 
 export default async function handler(
@@ -38,16 +58,21 @@ export default async function handler(
 
   // 为所有请求设置 CORS 头
   setCorsHeaders(req, res);
-  
-  await dbConnect();
 
-  switch (req.method) {
-    case 'GET':
-      return getMessages(req, res);
-    case 'POST':
-      return createMessage(req, res);
-    default:
-      return res.status(405).json({ message: '方法不允许' });
+  try {
+    await dbConnect();
+
+    switch (req.method) {
+      case 'GET':
+        return getMessages(req, res);
+      case 'POST':
+        return createMessage(req, res);
+      default:
+        return res.status(405).json({ message: '方法不允许' });
+    }
+  } catch (error) {
+    console.error('请求处理失败:', error);
+    return res.status(500).json({ message: '服务器内部错误' });
   }
 }
 

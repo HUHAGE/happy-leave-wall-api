@@ -84,7 +84,8 @@ async function getMessages(req: VercelRequest, res: VercelResponse) {
     const {
       page = '1',
       limit = '10',
-      type
+      type,
+      search
     } = req.query;
 
     const pageNumber = Math.max(1, parseInt(page as string));
@@ -95,21 +96,39 @@ async function getMessages(req: VercelRequest, res: VercelResponse) {
     const isValidType = type && typeof type === 'string' && Object.values(MessageType).includes(type as keyof typeof MessageType);
     const messageType = isValidType ? type as keyof typeof MessageType : undefined;
 
+    // 构建查询条件
+    let whereClause = [];
+    let params: any[] = [];
+    
+    if (messageType) {
+      whereClause.push(`type = $${params.length + 1}`);
+      params.push(messageType);
+    }
+    
+    if (search) {
+      whereClause.push(`(LOWER(nickname) LIKE $${params.length + 1} OR LOWER(content) LIKE $${params.length + 1})`);
+      params.push(`%${(search as string).toLowerCase()}%`);
+    }
+
+    const whereStr = whereClause.length > 0 ? `WHERE ${whereClause.join(' AND ')}` : '';
+
     // 执行查询
-    const messages = await sql`
-      SELECT * FROM messages
-      WHERE type = ${messageType}
-      ORDER BY created_at DESC
-      LIMIT ${limitNumber}
-      OFFSET ${offset}
-    `;
+    const messages = await sql.query(
+      `SELECT * FROM messages 
+      ${whereStr}
+      ORDER BY created_at DESC 
+      LIMIT $${params.length + 1} 
+      OFFSET $${params.length + 2}`,
+      [...params, limitNumber, offset]
+    );
 
     // 获取总数
-    const totalResult = await sql`
-      SELECT COUNT(*) as total 
+    const totalResult = await sql.query(
+      `SELECT COUNT(*) as total 
       FROM messages
-      WHERE type = ${messageType}
-    `;
+      ${whereStr}`,
+      params
+    );
 
     const total = parseInt(totalResult.rows[0].total);
 

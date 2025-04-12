@@ -26,18 +26,28 @@ function setCorsHeaders(req: VercelRequest, res: VercelResponse) {
   const origin = req.headers.origin;
   
   // 在开发环境打印请求源信息
-  if (process.env.NODE_ENV !== 'production') {
-    console.log('请求源:', origin);
-  }
+  console.log('请求源:', origin);
+  console.log('当前环境:', process.env.NODE_ENV);
+  console.log('允许的源站列表:', ALLOWED_ORIGINS);
 
   // 检查请求源是否在允许列表中
   if (origin) {
     if (ALLOWED_ORIGINS.includes(origin)) {
       res.setHeader('Access-Control-Allow-Origin', origin);
+      console.log('已设置CORS头部，允许源:', origin);
     } else if (process.env.NODE_ENV !== 'production') {
       // 在非生产环境允许所有源
       res.setHeader('Access-Control-Allow-Origin', origin);
+      console.log('非生产环境：允许所有源');
+    } else {
+      // 在生产环境，如果源不在允许列表中，设置为第一个允许的源
+      res.setHeader('Access-Control-Allow-Origin', ALLOWED_ORIGINS[0]);
+      console.log('生产环境：源不在允许列表中，设置为默认源');
     }
+  } else {
+    // 如果没有origin头，设置为第一个允许的源
+    res.setHeader('Access-Control-Allow-Origin', ALLOWED_ORIGINS[0]);
+    console.log('没有origin头，设置为默认源');
   }
   
   // 允许的请求方法和头部

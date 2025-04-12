@@ -7,7 +7,8 @@ const DEFAULT_ALLOWED_ORIGINS = [
   'http://localhost:3000',
   'http://localhost:8080',
   'https://happy-leave-wall.vercel.app',
-  'https://happy-leave-wall-api.vercel.app'
+  'https://happy-leave-wall-api.vercel.app',
+  'https://www.huhawall.fun'
 ];
 
 // 从环境变量获取允许的源站

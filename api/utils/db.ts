@@ -21,10 +21,10 @@ export async function createMessagesTable() {
 
 // 消息类型枚举
 export const MessageType = {
-  GENERAL: 'general',
-  SUGGESTION: 'suggestion',
-  QUESTION: 'question',
-  FEEDBACK: 'feedback'
+  general: 'general',
+  suggestion: 'suggestion',
+  question: 'question',
+  feedback: 'feedback'
 } as const;
 
 // 消息接口

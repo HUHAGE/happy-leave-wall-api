@@ -1,6 +1,6 @@
 import { VercelRequest, VercelResponse } from '@vercel/node';
 import { sql } from '@vercel/postgres';
-import { Message, MessageType, createMessagesTable } from '../utils/db';
+import { Message, MessageType, createMessagesTable } from './utils/db';
 
 // CORS 配置
 const DEFAULT_ALLOWED_ORIGINS = [
@@ -28,20 +28,23 @@ function setCorsHeaders(req: VercelRequest, res: VercelResponse) {
   // 打印调试信息
   console.log('请求源:', origin);
   console.log('当前环境:', process.env.NODE_ENV);
+  console.log('允许的源站:', ALLOWED_ORIGINS);
   
-  // 始终允许本地开发环境
-  if (origin && (process.env.NODE_ENV === 'development' || ALLOWED_ORIGINS.includes(origin))) {
-    res.setHeader('Access-Control-Allow-Origin', origin);
-  } else {
-    // 默认允许主域名访问
-    res.setHeader('Access-Control-Allow-Origin', 'https://happy-leave-wall.vercel.app');
+  if (!origin) {
+    console.log('没有 origin 头部');
+    return;
   }
-  
-  // 其他CORS头部
-  res.setHeader('Access-Control-Allow-Credentials', 'true');
-  res.setHeader('Access-Control-Allow-Methods', 'GET, POST, OPTIONS');
-  res.setHeader('Access-Control-Allow-Headers', '*');
-  res.setHeader('Access-Control-Max-Age', '86400');
+
+  // 检查是否是允许的源
+  if (process.env.NODE_ENV === 'development' || ALLOWED_ORIGINS.includes(origin)) {
+    res.setHeader('Access-Control-Allow-Origin', origin);
+    res.setHeader('Access-Control-Allow-Credentials', 'true');
+    res.setHeader('Access-Control-Allow-Methods', 'GET, POST, PUT, DELETE, OPTIONS');
+    res.setHeader('Access-Control-Allow-Headers', 'Content-Type, Authorization, X-Requested-With');
+    res.setHeader('Access-Control-Max-Age', '86400');
+  } else {
+    console.log('不允许的源:', origin);
+  }
 }
 
 export default async function handler(
@@ -86,21 +89,15 @@ async function getMessages(req: VercelRequest, res: VercelResponse) {
     const pageNumber = Math.max(1, parseInt(page as string));
     const limitNumber = Math.min(50, Math.max(1, parseInt(limit as string)));
     const offset = (pageNumber - 1) * limitNumber;
+    
+    // 验证消息类型
+    const isValidType = type && typeof type === 'string' && Object.values(MessageType).includes(type as keyof typeof MessageType);
+    const messageType = isValidType ? type as keyof typeof MessageType : undefined;
 
-    // 构建查询
-    let query = sql`
+    // 执行查询
+    const messages = await sql`
       SELECT * FROM messages
-      WHERE 1=1
-    `;
-
-    // 添加类型过滤
-    if (type && Object.values(MessageType).includes(type as any)) {
-      query = sql`${query} AND type = ${type}`;
-    }
-
-    // 添加排序和分页
-    query = sql`
-      ${query}
+      WHERE type = ${messageType}
       ORDER BY created_at DESC
       LIMIT ${limitNumber}
       OFFSET ${offset}
@@ -108,13 +105,12 @@ async function getMessages(req: VercelRequest, res: VercelResponse) {
 
     // 获取总数
     const totalResult = await sql`
-      SELECT COUNT(*) as total FROM messages
-      WHERE 1=1
-      ${type ? sql`AND type = ${type}` : sql``}
+      SELECT COUNT(*) as total 
+      FROM messages
+      WHERE type = ${messageType}
     `;
 
     const total = parseInt(totalResult.rows[0].total);
-    const messages = await query;
 
     return res.status(200).json({
       message: '获取成功',

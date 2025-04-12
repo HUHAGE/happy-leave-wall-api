@@ -1,6 +1,6 @@
 import { VercelRequest, VercelResponse } from '@vercel/node';
-import dbConnect from '../utils/dbConnect';
-import { Message, MessageType } from '../models/Message';
+import { sql } from '@vercel/postgres';
+import { Message, MessageType, createMessagesTable } from '../utils/db';
 
 // CORS 配置
 const DEFAULT_ALLOWED_ORIGINS = [
@@ -40,8 +40,8 @@ function setCorsHeaders(req: VercelRequest, res: VercelResponse) {
   }
   
   // 允许的请求方法和头部
-  res.setHeader('Access-Control-Allow-Methods', 'GET, POST, OPTIONS, PUT, DELETE');
-  res.setHeader('Access-Control-Allow-Headers', 'X-Requested-With, Content-Type, Authorization');
+  res.setHeader('Access-Control-Allow-Methods', 'GET, POST, OPTIONS');
+  res.setHeader('Access-Control-Allow-Headers', 'Content-Type, Authorization');
   res.setHeader('Access-Control-Allow-Credentials', 'true');
   res.setHeader('Access-Control-Max-Age', '86400'); // 24 小时
 }
@@ -60,7 +60,8 @@ export default async function handler(
   setCorsHeaders(req, res);
 
   try {
-    await dbConnect();
+    // 确保数据表存在
+    await createMessagesTable();
 
     switch (req.method) {
       case 'GET':
@@ -80,44 +81,48 @@ export default async function handler(
 async function getMessages(req: VercelRequest, res: VercelResponse) {
   try {
     const {
-      page = 1,
-      limit = 10,
-      type,
-      sortBy = 'createdAt',
-      order = 'desc'
+      page = '1',
+      limit = '10',
+      type
     } = req.query;
 
-    // 构建查询条件
-    const query: any = {};
-    if (type && Object.values(MessageType).includes(type as MessageType)) {
-      query.type = type;
-    }
-
-    // 验证分页参数
     const pageNumber = Math.max(1, parseInt(page as string));
     const limitNumber = Math.min(50, Math.max(1, parseInt(limit as string)));
-    const skip = (pageNumber - 1) * limitNumber;
+    const offset = (pageNumber - 1) * limitNumber;
 
-    // 构建排序条件
-    const sort: { [key: string]: 'asc' | 'desc' } = {};
-    if (['createdAt', 'type'].includes(sortBy as string)) {
-      sort[sortBy as string] = (order as 'asc' | 'desc') === 'asc' ? 'asc' : 'desc';
+    // 构建查询
+    let query = sql`
+      SELECT * FROM messages
+      WHERE 1=1
+    `;
+
+    // 添加类型过滤
+    if (type && Object.values(MessageType).includes(type as any)) {
+      query = sql`${query} AND type = ${type}`;
     }
 
-    // 查询数据
-    const [messages, total] = await Promise.all([
-      Message.find(query)
-        .sort(sort)
-        .skip(skip)
-        .limit(limitNumber)
-        .lean(),
-      Message.countDocuments(query)
-    ]);
+    // 添加排序和分页
+    query = sql`
+      ${query}
+      ORDER BY created_at DESC
+      LIMIT ${limitNumber}
+      OFFSET ${offset}
+    `;
+
+    // 获取总数
+    const totalResult = await sql`
+      SELECT COUNT(*) as total FROM messages
+      WHERE 1=1
+      ${type ? sql`AND type = ${type}` : sql``}
+    `;
+
+    const total = parseInt(totalResult.rows[0].total);
+    const messages = await query;
 
     return res.status(200).json({
       message: '获取成功',
       data: {
-        messages,
+        messages: messages.rows,
         pagination: {
           total,
           page: pageNumber,
@@ -135,7 +140,7 @@ async function getMessages(req: VercelRequest, res: VercelResponse) {
 // 创建新留言
 async function createMessage(req: VercelRequest, res: VercelResponse) {
   try {
-    const { nickname, content, type } = req.body;
+    const { nickname, content, type = 'general' } = req.body;
 
     // 验证必填字段
     if (!nickname || !content) {
@@ -143,21 +148,20 @@ async function createMessage(req: VercelRequest, res: VercelResponse) {
     }
 
     // 验证留言类型
-    if (type && !Object.values(MessageType).includes(type)) {
+    if (!Object.values(MessageType).includes(type)) {
       return res.status(400).json({ message: '无效的留言类型' });
     }
 
     // 创建新留言
-    const message = await Message.create({
-      nickname,
-      content,
-      type: type || MessageType.GENERAL,
-      createdAt: new Date()
-    });
+    const result = await sql`
+      INSERT INTO messages (nickname, content, type)
+      VALUES (${nickname}, ${content}, ${type})
+      RETURNING *
+    `;
 
     return res.status(201).json({
       message: '留言成功',
-      data: message
+      data: result.rows[0]
     });
   } catch (error) {
     console.error('留言失败:', error);

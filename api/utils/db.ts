@@ -9,6 +9,7 @@ export async function createMessagesTable() {
         nickname VARCHAR(50) NOT NULL,
         content TEXT NOT NULL,
         type VARCHAR(20) NOT NULL DEFAULT 'general',
+        towho VARCHAR(50),
         created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
       );
     `;
@@ -33,5 +34,6 @@ export interface Message {
   nickname: string;
   content: string;
   type: typeof MessageType[keyof typeof MessageType];
+  towho?: string;
   created_at: Date;
 } 

@@ -22,10 +22,9 @@ export async function createMessagesTable() {
 
 // 消息类型枚举
 export const MessageType = {
-  general: 'general',
-  suggestion: 'suggestion',
-  question: 'question',
-  feedback: 'feedback'
+  general: 'general', // 游客留言
+  common: 'common', // 公共留言
+  private: 'private' // 私密留言
 } as const;
 
 // 消息接口

@@ -153,7 +153,7 @@ async function getMessages(req: VercelRequest, res: VercelResponse) {
 // 创建新留言
 async function createMessage(req: VercelRequest, res: VercelResponse) {
   try {
-    const { nickname, content, type = 'general', towho = '' } = req.body;
+    const { nickname, content, type, towho} = req.body;
 
     // 验证必填字段
     if (!nickname || !content) {

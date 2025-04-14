@@ -2,28 +2,10 @@ import { VercelRequest, VercelResponse } from '@vercel/node';
 import { sql } from '@vercel/postgres';
 import bcrypt from 'bcryptjs';
 
-// 允许的源
-const allowedOrigins = ['http://localhost:8080', 'https://www.huhawall.online', 'https://www.huhawall.fun'];
-
 export default async function handler(
   request: VercelRequest,
   response: VercelResponse,
 ) {
-  // 处理 CORS
-  const origin = request.headers.origin;
-  if (origin && allowedOrigins.includes(origin)) {
-    response.setHeader('Access-Control-Allow-Origin', origin);
-    response.setHeader('Access-Control-Allow-Methods', 'GET, POST, PUT, DELETE, OPTIONS');
-    response.setHeader('Access-Control-Allow-Headers', 'X-Requested-With, Content-Type, Authorization');
-    response.setHeader('Access-Control-Allow-Credentials', 'true');
-    response.setHeader('Access-Control-Max-Age', '86400');
-  }
-
-  // 处理预检请求
-  if (request.method === 'OPTIONS') {
-    return response.status(200).end();
-  }
-
   if (request.method !== 'POST') {
     return response.status(405).json({ error: '只支持 POST 方法' });
   }

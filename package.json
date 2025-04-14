@@ -18,6 +18,8 @@
   },
   "dependencies": {
     "@neondatabase/serverless": "^1.0.0",
-    "@vercel/postgres": "^0.7.2"
+    "@types/bcryptjs": "^3.0.0",
+    "@vercel/postgres": "^0.7.2",
+    "bcryptjs": "^3.0.2"
   }
 }

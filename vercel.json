@@ -56,10 +56,10 @@
       ]
     }
   ],
-  "routes": [
+  "rewrites": [
     {
-      "src": "/api/(.*)",
-      "dest": "/api/$1.ts"
+      "source": "/api/:path*",
+      "destination": "/api/:path*.ts"
     }
   ]
 } 

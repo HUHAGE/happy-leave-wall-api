@@ -58,8 +58,16 @@
   ],
   "rewrites": [
     {
-      "source": "/api/messages/:id",
+      "source": "/api/messages/:id([0-9]+)",
       "destination": "/api/messages"
+    },
+    {
+      "source": "/api/messages/comments",
+      "destination": "/api/messages/comments.ts"
+    },
+    {
+      "source": "/api/messages/like",
+      "destination": "/api/messages/like.ts"
     },
     {
       "source": "/api/:path*",

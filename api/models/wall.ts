@@ -88,8 +88,13 @@ export async function getWalls(limit: number = 10, offset: number = 0) {
 export async function getWallById(id: string) {
   try {
     const result = await sql`
-      SELECT * FROM walls 
-      WHERE id = ${id} AND is_active = true;
+      SELECT w.*, 
+        (SELECT COUNT(*) FROM messages m WHERE m.wall_id = w.id) as message_count,
+        (SELECT COUNT(*) FROM messages m 
+         JOIN comments c ON c.message_id = m.id 
+         WHERE m.wall_id = w.id) as comment_count
+      FROM walls w
+      WHERE w.id = ${id} AND w.is_active = true;
     `;
     return result.rows[0] || null;
   } catch (error) {

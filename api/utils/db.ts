@@ -102,4 +102,85 @@ export async function createCommentsTable() {
     console.error('Error creating comments table:', error);
     throw error;
   }
+}
+
+// Wall样式枚举
+export enum WallStyle {
+  STANDARD = 'standard',
+  CORK = 'cork',
+  BLACKBOARD = 'blackboard',
+  COLORFUL = 'colorful'
+}
+
+// Wall接口定义
+export interface Wall {
+  id: string;
+  name: string;
+  description?: string;
+  style: WallStyle;
+  max_messages: number;
+  requires_approval: boolean;
+  created_by: string;
+  created_at: Date;
+  updated_at: Date;
+  is_active: boolean;
+  background_color?: string;
+  font_family?: string;
+  is_public: boolean;
+  view_count: number;
+}
+
+// 创建walls表
+export async function createWallsTable() {
+  try {
+    await sql.query(`
+      CREATE TABLE IF NOT EXISTS walls (
+        id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+        name VARCHAR(100) NOT NULL,
+        description TEXT,
+        style VARCHAR(20) NOT NULL DEFAULT 'standard' CHECK (style IN ('standard', 'cork', 'blackboard', 'colorful')),
+        max_messages INTEGER NOT NULL DEFAULT 100 CHECK (max_messages > 0),
+        requires_approval BOOLEAN NOT NULL DEFAULT false,
+        created_by UUID NOT NULL,
+        created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
+        updated_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
+        is_active BOOLEAN NOT NULL DEFAULT true,
+        background_color VARCHAR(7),
+        font_family VARCHAR(100),
+        is_public BOOLEAN NOT NULL DEFAULT true,
+        view_count INTEGER NOT NULL DEFAULT 0 CHECK (view_count >= 0)
+      );
+
+      -- 创建更新时间触发器
+      CREATE OR REPLACE FUNCTION update_updated_at_column()
+      RETURNS TRIGGER AS $$
+      BEGIN
+          NEW.updated_at = CURRENT_TIMESTAMP;
+          RETURN NEW;
+      END;
+      $$ language 'plpgsql';
+
+      -- 如果触发器不存在则创建
+      DO $$
+      BEGIN
+        IF NOT EXISTS (SELECT 1 FROM pg_trigger WHERE tgname = 'update_walls_updated_at') THEN
+          CREATE TRIGGER update_walls_updated_at
+              BEFORE UPDATE ON walls
+              FOR EACH ROW
+              EXECUTE FUNCTION update_updated_at_column();
+        END IF;
+      END
+      $$;
+
+      -- 创建索引
+      CREATE INDEX IF NOT EXISTS idx_walls_created_by ON walls(created_by);
+      CREATE INDEX IF NOT EXISTS idx_walls_created_at ON walls(created_at);
+      CREATE INDEX IF NOT EXISTS idx_walls_is_public ON walls(is_public);
+    `);
+    
+    console.log('Walls表创建成功');
+  } catch (error) {
+    console.error('创建Walls表失败:', error);
+    throw error;
+  }
 } 

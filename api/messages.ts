@@ -132,7 +132,8 @@ async function getMessages(req: VercelRequest, res: VercelResponse) {
 
     // 执行查询，包含点赞数
     const messages = await sql.query(
-      `SELECT m.*, COALESCE(m.likes_count, 0) as likes_count 
+      `SELECT m.*, COALESCE(m.likes_count, 0) as likes_count,
+      (SELECT COUNT(*) FROM comments c WHERE c.message_id = m.id) as comment_count
       FROM messages m
       ${whereStr}
       ORDER BY created_at DESC 

@@ -23,6 +23,29 @@ function validateCreateWallBody(body: any) {
 }
 
 export default async function handler(req: VercelRequest, res: VercelResponse) {
+  const allowedOrigins = [
+    'http://localhost:8080',
+    'http://localhost:3000',
+    'https://www.huhawall.online',
+    'https://huhawall.online'
+  ];
+
+  const origin = req.headers.origin;
+  
+  // 设置CORS响应头
+  if (origin && allowedOrigins.includes(origin)) {
+    res.setHeader('Access-Control-Allow-Origin', origin);
+    res.setHeader('Access-Control-Allow-Methods', 'GET, POST, OPTIONS');
+    res.setHeader('Access-Control-Allow-Headers', 'Content-Type, Authorization');
+    res.setHeader('Access-Control-Allow-Credentials', 'true');
+  }
+
+  // 处理预检请求
+  if (req.method === 'OPTIONS') {
+    res.status(200).end();
+    return;
+  }
+
   if (req.method === 'POST') {
     try {
       const validationError = validateCreateWallBody(req.body);

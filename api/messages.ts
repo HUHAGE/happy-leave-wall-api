@@ -112,9 +112,10 @@ async function getMessages(req: VercelRequest, res: VercelResponse) {
 
     const whereStr = whereClause.length > 0 ? `WHERE ${whereClause.join(' AND ')}` : '';
 
-    // 执行查询
+    // 执行查询，包含点赞数
     const messages = await sql.query(
-      `SELECT * FROM messages 
+      `SELECT m.*, COALESCE(m.likes_count, 0) as likes_count 
+      FROM messages m
       ${whereStr}
       ORDER BY created_at DESC 
       LIMIT $${params.length + 1} 

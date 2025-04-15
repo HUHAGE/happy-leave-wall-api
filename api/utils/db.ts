@@ -35,4 +35,39 @@ export interface Message {
   type: typeof MessageType[keyof typeof MessageType];
   towho?: string;
   created_at: Date;
+}
+
+// 点赞记录接口
+export interface Like {
+  id: number;
+  message_id: number;
+  user_ip: string;
+  created_at: Date;
+}
+
+// 创建点赞表
+export async function createLikesTable() {
+  try {
+    // 先修改 messages 表，添加 likes_count 字段
+    await sql`
+      ALTER TABLE messages 
+      ADD COLUMN IF NOT EXISTS likes_count INTEGER DEFAULT 0;
+    `;
+    console.log('Added likes_count column to messages table');
+
+    // 创建点赞记录表
+    await sql`
+      CREATE TABLE IF NOT EXISTS likes (
+        id SERIAL PRIMARY KEY,
+        message_id INTEGER NOT NULL REFERENCES messages(id) ON DELETE CASCADE,
+        user_ip VARCHAR(50) NOT NULL,
+        created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
+        UNIQUE(message_id, user_ip)
+      );
+    `;
+    console.log('Likes table ready');
+  } catch (error) {
+    console.error('Error creating likes table:', error);
+    throw error;
+  }
 } 

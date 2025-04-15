@@ -64,6 +64,16 @@ export default async function handler(
     // 确保数据表存在
     await createMessagesTable();
 
+    // 检查是否是获取单条留言的请求
+    const pathParts = req.url?.split('/') || [];
+    const lastPart = pathParts[pathParts.length - 1];
+    const messageId = parseInt(lastPart);
+
+    if (!isNaN(messageId)) {
+      // 如果路径最后一部分是数字，则认为是获取单条留言的请求
+      return getMessage(messageId, req, res);
+    }
+
     switch (req.method) {
       case 'GET':
         return getMessages(req, res);
@@ -179,6 +189,52 @@ async function createMessage(req: VercelRequest, res: VercelResponse) {
     });
   } catch (error) {
     console.error('留言失败:', error);
+    return res.status(500).json({ message: '服务器内部错误' });
+  }
+}
+
+// 获取单条留言详情
+async function getMessage(messageId: number, req: VercelRequest, res: VercelResponse) {
+  try {
+    // 获取留言详情，包含点赞数
+    const result = await sql`
+      SELECT m.*, COALESCE(m.likes_count, 0) as likes_count 
+      FROM messages m
+      WHERE m.id = ${messageId}
+    `;
+
+    if (result.rowCount === 0) {
+      return res.status(404).json({ message: '留言不存在' });
+    }
+
+    // 获取评论数量
+    const commentCountResult = await sql`
+      SELECT COUNT(*) as comment_count 
+      FROM comments 
+      WHERE message_id = ${messageId}
+    `;
+
+    // 获取最新的5条评论
+    const recentComments = await sql`
+      SELECT * FROM comments 
+      WHERE message_id = ${messageId}
+      ORDER BY created_at DESC 
+      LIMIT 5
+    `;
+
+    const message = result.rows[0];
+    const commentCount = parseInt(commentCountResult.rows[0].comment_count);
+
+    return res.status(200).json({
+      message: '获取成功',
+      data: {
+        ...message,
+        comment_count: commentCount,
+        recent_comments: recentComments.rows
+      }
+    });
+  } catch (error) {
+    console.error('获取留言详情失败:', error);
     return res.status(500).json({ message: '服务器内部错误' });
   }
 } 

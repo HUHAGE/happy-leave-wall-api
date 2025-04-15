@@ -63,11 +63,19 @@
     },
     {
       "source": "/api/messages/comments",
-      "destination": "/api/messages/comments.ts"
+      "destination": "/api/messages?action=comments"
     },
     {
       "source": "/api/messages/like",
-      "destination": "/api/messages/like.ts"
+      "destination": "/api/messages?action=like"
+    },
+    {
+      "source": "/api/users/:action(login|register)",
+      "destination": "/api/users/index?action=:action"
+    },
+    {
+      "source": "/api/walls/:id([0-9]+)",
+      "destination": "/api/walls/index?id=:id"
     },
     {
       "source": "/api/:path*",

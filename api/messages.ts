@@ -103,8 +103,7 @@ async function getMessages(req: VercelRequest, res: VercelResponse) {
       page = '1',
       limit = '10',
       type,
-      search,
-      wall_id
+      search
     } = req.query;
 
     const pageNumber = Math.max(1, parseInt(page as string));
@@ -127,12 +126,6 @@ async function getMessages(req: VercelRequest, res: VercelResponse) {
     if (search) {
       whereClause.push(`(LOWER(nickname) LIKE $${params.length + 1} OR LOWER(content) LIKE $${params.length + 1})`);
       params.push(`%${(search as string).toLowerCase()}%`);
-    }
-
-    // 根据wall_id过滤
-    if (wall_id) {
-      whereClause.push(`wall_id = $${params.length + 1}`);
-      params.push(wall_id);
     }
 
     const whereStr = whereClause.length > 0 ? `WHERE ${whereClause.join(' AND ')}` : '';
@@ -180,7 +173,7 @@ async function getMessages(req: VercelRequest, res: VercelResponse) {
 // 创建新留言
 async function createMessage(req: VercelRequest, res: VercelResponse) {
   try {
-    const { nickname, content, type, towho, wall_id } = req.body;
+    const { nickname, content, type, towho} = req.body;
 
     // 验证必填字段
     if (!nickname || !content) {
@@ -194,8 +187,8 @@ async function createMessage(req: VercelRequest, res: VercelResponse) {
 
     // 创建新留言
     const result = await sql`
-      INSERT INTO messages (nickname, content, type, towho, wall_id)
-      VALUES (${nickname}, ${content}, ${type}, ${towho}, ${wall_id || null})
+      INSERT INTO messages (nickname, content, type, towho)
+      VALUES (${nickname}, ${content}, ${type}, ${towho})
       RETURNING *
     `;
 

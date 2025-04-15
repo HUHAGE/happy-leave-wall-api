@@ -10,26 +10,9 @@ export async function createMessagesTable() {
         content TEXT NOT NULL,
         type VARCHAR(20) NOT NULL DEFAULT 'general',
         towho VARCHAR(50),
-        created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
-        wall_id UUID REFERENCES walls(id) ON DELETE SET NULL
+        created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
       );
     `;
-    
-    // 检查是否需要添加wall_id列
-    const result = await sql`
-      SELECT column_name 
-      FROM information_schema.columns 
-      WHERE table_name = 'messages' AND column_name = 'wall_id';
-    `;
-    
-    if (result.rowCount === 0) {
-      await sql`
-        ALTER TABLE messages 
-        ADD COLUMN IF NOT EXISTS wall_id UUID REFERENCES walls(id) ON DELETE SET NULL;
-      `;
-      console.log('Added wall_id column to messages table');
-    }
-    
     console.log('Messages table ready');
   } catch (error) {
     console.error('Error creating messages table:', error);
@@ -51,7 +34,6 @@ export interface Message {
   content: string;
   type: typeof MessageType[keyof typeof MessageType];
   towho?: string;
-  wall_id?: string; // 添加wall_id字段，可选，UUID类型，但在TypeScript中表示为字符串
   created_at: Date;
 }
 
@@ -138,7 +120,7 @@ export interface Wall {
   style: WallStyle;
   max_messages: number;
   requires_approval: boolean;
-  created_by: number;
+  created_by: string;
   created_at: Date;
   updated_at: Date;
   is_active: boolean;
@@ -159,7 +141,7 @@ export async function createWallsTable() {
         style VARCHAR(20) NOT NULL DEFAULT 'standard' CHECK (style IN ('standard', 'cork', 'blackboard', 'colorful')),
         max_messages INTEGER NOT NULL DEFAULT 100 CHECK (max_messages > 0),
         requires_approval BOOLEAN NOT NULL DEFAULT false,
-        created_by INTEGER NOT NULL,
+        created_by UUID NOT NULL,
         created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
         updated_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
         is_active BOOLEAN NOT NULL DEFAULT true,

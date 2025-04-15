@@ -70,4 +70,36 @@ export async function createLikesTable() {
     console.error('Error creating likes table:', error);
     throw error;
   }
+}
+
+// 评论接口
+export interface Comment {
+  id: number;
+  message_id: number;
+  nickname: string;
+  content: string;
+  user_ip: string;
+  created_at: Date;
+  likes_count: number;
+}
+
+// 创建评论表
+export async function createCommentsTable() {
+  try {
+    await sql`
+      CREATE TABLE IF NOT EXISTS comments (
+        id SERIAL PRIMARY KEY,
+        message_id INTEGER NOT NULL REFERENCES messages(id) ON DELETE CASCADE,
+        nickname VARCHAR(50) NOT NULL,
+        content TEXT NOT NULL,
+        user_ip VARCHAR(50) NOT NULL,
+        likes_count INTEGER DEFAULT 0,
+        created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
+      );
+    `;
+    console.log('Comments table ready');
+  } catch (error) {
+    console.error('Error creating comments table:', error);
+    throw error;
+  }
 } 

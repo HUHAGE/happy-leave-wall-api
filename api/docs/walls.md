@@ -26,6 +26,9 @@
 | fontFamily | string | 否 | null | 字体 |
 | isPublic | boolean | 否 | true | 是否公开 |
 | viewCount | number | 否 | 0 | 查看次数 |
+| creatorNickname | string | 否 | null | 创建者昵称 |
+| messageCount | number | 否 | 0 | 留言数量 |
+| commentCount | number | 否 | 0 | 评论数量 |
 
 ## API 接口
 
@@ -120,7 +123,10 @@
     "backgroundColor": "#f5f5f5",
     "fontFamily": "Arial",
     "isPublic": true,
-    "viewCount": 0
+    "viewCount": 0,
+    "creatorNickname": "用户昵称",
+    "messageCount": 0,
+    "commentCount": 0
   }
   // ... 更多留言墙
 ]
@@ -156,7 +162,10 @@
   "backgroundColor": "#f5f5f5",
   "fontFamily": "Arial",
   "isPublic": true,
-  "viewCount": 0
+  "viewCount": 0,
+  "creatorNickname": "用户昵称",
+  "messageCount": 5,
+  "commentCount": 2
 }
 ```
 

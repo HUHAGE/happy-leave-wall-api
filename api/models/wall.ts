@@ -19,7 +19,7 @@ export async function createWallTable() {
         style VARCHAR(20) NOT NULL DEFAULT 'standard',
         max_messages INTEGER NOT NULL DEFAULT 100,
         requires_approval BOOLEAN NOT NULL DEFAULT false,
-        created_by UUID NOT NULL,
+        created_by INTEGER NOT NULL,
         created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
         updated_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
         is_active BOOLEAN DEFAULT true,
@@ -72,9 +72,15 @@ export async function createWall(
 export async function getWalls(limit: number = 10, offset: number = 0) {
   try {
     const result = await sql`
-      SELECT * FROM walls 
-      WHERE is_active = true
-      ORDER BY created_at DESC
+      SELECT w.*, 
+        (SELECT COUNT(*) FROM messages m WHERE m.wall_id = w.id) as message_count,
+        (SELECT COUNT(*) FROM messages m 
+         JOIN comments c ON c.message_id = m.id 
+         WHERE m.wall_id = w.id) as comment_count,
+        (SELECT nickname FROM users u WHERE u.id = w.created_by) as creator_nickname
+      FROM walls w
+      WHERE w.is_active = true
+      ORDER BY w.created_at DESC
       LIMIT ${limit} OFFSET ${offset};
     `;
     return result.rows;
@@ -92,7 +98,8 @@ export async function getWallById(id: string) {
         (SELECT COUNT(*) FROM messages m WHERE m.wall_id = w.id) as message_count,
         (SELECT COUNT(*) FROM messages m 
          JOIN comments c ON c.message_id = m.id 
-         WHERE m.wall_id = w.id) as comment_count
+         WHERE m.wall_id = w.id) as comment_count,
+        (SELECT nickname FROM users u WHERE u.id = w.created_by) as creator_nickname
       FROM walls w
       WHERE w.id = ${id} AND w.is_active = true;
     `;

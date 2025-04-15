@@ -58,6 +58,10 @@
   ],
   "rewrites": [
     {
+      "source": "/api/messages/:id",
+      "destination": "/api/messages"
+    },
+    {
       "source": "/api/:path*",
       "destination": "/api/:path*.ts"
     }

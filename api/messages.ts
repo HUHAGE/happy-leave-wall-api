@@ -8,7 +8,8 @@ const DEFAULT_ALLOWED_ORIGINS = [
   'http://localhost:8080',
   'https://happy-leave-wall.vercel.app',
   'https://happy-leave-wall-api.vercel.app',
-  'https://www.huhawall.fun'
+  'https://www.huhawall.fun',
+  'https://www.huhawall.online'
 ];
 
 // 从环境变量获取允许的源站
@@ -64,14 +65,18 @@ export default async function handler(
     // 确保数据表存在
     await createMessagesTable();
 
-    // 检查是否是获取单条留言的请求
-    const pathParts = req.url?.split('/') || [];
-    const lastPart = pathParts[pathParts.length - 1];
-    const messageId = parseInt(lastPart);
-
-    if (!isNaN(messageId)) {
-      // 如果路径最后一部分是数字，则认为是获取单条留言的请求
-      return getMessage(messageId, req, res);
+    // 解析路径
+    const url = new URL(req.url || '', `http://${req.headers.host}`);
+    const pathParts = url.pathname.split('/').filter(Boolean);
+    
+    // 如果路径是 /api/messages/{number}，则获取单条留言
+    if (pathParts.length > 0) {
+      const lastPart = pathParts[pathParts.length - 1];
+      const messageId = parseInt(lastPart);
+      
+      if (!isNaN(messageId)) {
+        return getMessage(messageId, req, res);
+      }
     }
 
     switch (req.method) {
@@ -84,6 +89,9 @@ export default async function handler(
     }
   } catch (error) {
     console.error('请求处理失败:', error);
+    console.error('错误详情:', error instanceof Error ? error.message : '未知错误');
+    console.error('请求URL:', req.url);
+    console.error('请求方法:', req.method);
     return res.status(500).json({ message: '服务器内部错误' });
   }
 }
